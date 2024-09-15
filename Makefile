@@ -13,7 +13,7 @@ OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 
 DEPS := $(OBJS:.o=.d)
 
-CCFLAGS := -Wall -Wpedantic -Werror -Wimplicit-fallthrough=3 -g -MMD -MP
+CCFLAGS := -Wall -Wpedantic -Werror -Wimplicit-fallthrough=3 -g -MMD -MP -O3
 LDFLAGS :=
 LIBFLAGS :=
 
