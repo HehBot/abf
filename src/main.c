@@ -83,6 +83,7 @@ int main(int argc, char** argv)
 
     if (is_jit) {
         buf_t buf = jitc(bf_ops);
+        free(bf_ops.array);
         if (buf.b == NULL) {
             fprintf(stderr, "JIT failed\n");
             return EXIT_FAILURE;
@@ -99,8 +100,10 @@ int main(int argc, char** argv)
         mprotect(tmp, buf.sz, PROT_READ | PROT_WRITE);
 
         free(tmp);
-    } else
+    } else {
         err = interpret(bf_ops, fileno(stdin), fileno(stdout), &data_array, data_size);
+        free(bf_ops.array);
+    }
 
     switch (err) {
     case BF_OK:
@@ -122,6 +125,5 @@ int main(int argc, char** argv)
     }
 
     free(data_array);
-    free(bf_ops.array);
     return EXIT_SUCCESS;
 }
