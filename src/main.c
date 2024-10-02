@@ -79,7 +79,7 @@ int main(int argc, char** argv)
 
     size_t data_size = 1000;
     uint8_t* data_array = calloc(data_size, 1);
-    int err;
+    bf_err_t err;
 
     if (is_jit) {
         buf_t buf = jitc(bf_ops);
@@ -89,17 +89,20 @@ int main(int argc, char** argv)
             return EXIT_FAILURE;
         }
 
-        void* tmp = valloc(buf.sz);
-        memmove(tmp, buf.b, buf.sz);
-        free(buf.b);
+        // [buf_page, buf_page+sz_page) mapped PROT_EXEC to cover [buf.b, buf.b+buf.sz)
+        uintptr_t pgsz = getpagesize();
+        void* buf_page = (void*)(((uintptr_t)buf.b) & (~(uintptr_t)(pgsz - 1)));
+        size_t sz_page = (uintptr_t)((uint8_t*)buf.b + buf.sz) - (uintptr_t)buf_page;
+        sz_page = pgsz * ((sz_page + pgsz - 1) / pgsz);
+        mprotect(buf_page, sz_page, PROT_EXEC | PROT_READ | PROT_WRITE);
 
-        mprotect(tmp, buf.sz, PROT_EXEC | PROT_READ | PROT_WRITE);
         bf_err_t (*f)(int, int, uint8_t**, size_t);
-        *(void**)&f = tmp;
+        *(void**)&f = buf.b;
         err = f(fileno(stdin), fileno(stdout), &data_array, data_size);
-        mprotect(tmp, buf.sz, PROT_READ | PROT_WRITE);
 
-        free(tmp);
+        mprotect(buf_page, sz_page, PROT_READ | PROT_WRITE);
+
+        free(buf.b);
     } else {
         err = interpret(bf_ops, fileno(stdin), fileno(stdout), &data_array, data_size);
         free(bf_ops.array);
